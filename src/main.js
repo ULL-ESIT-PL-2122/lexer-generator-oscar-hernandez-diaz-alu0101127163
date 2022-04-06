@@ -35,26 +35,63 @@ const checkRegExpIsNamed = (regexp) => {
 const buildLexer = (regexps) => {
   let validTokens = new Map();
   regexps.push(/(?<ERROR>.+)/);
+  let arr = '';
   regexps.forEach((regexp) => {
-    /*fill it */
+    if (checkRegExpIsNamed(regexp) != false) {
+      validTokens.set(checkRegExpIsNamed(regexp), regexp);
+      arr += regexp.source + '|';
+    }
+    else {
+      throw new Error("Not valid regex expression named");
+    }
   });
-  const regexp = new RegExp( /* fill it */ );
-  let lexer = (string, line=1) => {
+  arr = arr.slice(0, arr.length - 1);
+  // console.log(arr);
+  const regexp = new RegExp(arr, 'y');
+  // console.log(regexp);
+  let lexer = (string, line = 1) => {
     const result = [];
-    
-    /* fill it */
-    
+
+    let match;
+    while (match = regexp.exec(string)) {
+      for (let i in match.groups) {
+        if (match.groups[i] != undefined)
+          if (!validTokens.get(i).hasOwnProperty('skip')) {
+            let line = 1;
+            let col = 1;
+            for (let j = 0; j < regexp.lastIndex; j++) {
+              if (string[j] === '\n') {
+                line++;
+                col = 1;
+              }
+              else col++;
+            }
+            let token;
+            if (!validTokens.get(i).hasOwnProperty('value')) {
+              token = { type: i, value: match.groups[i], line: line, col: col - match.groups[i].length, length: match.groups[i].length }
+            }
+            else 
+            {
+              token = { type: i, value: validTokens.get(i).value(match.groups[i]), line: line, col: col - match.groups[i].length, length: match.groups[i].length }
+
+            }
+            //console.log(match.groups[i]);
+            result.push(token);
+          }
+      }
+    }
+
     return result;
   };
 
   //console.log(validTokens);
-  return {validTokens, lexer};
+  return { validTokens, lexer };
 };
 
 
-const nearleyLexer = function(regexps) {
+const nearleyLexer = function (regexps) {
   debugger;
-  const {validTokens, lexer} = buildLexer(regexps);
+  const { validTokens, lexer } = buildLexer(regexps);
   validTokens.set("EOF");
   return {
     currentPos: 0,
@@ -66,7 +103,7 @@ const nearleyLexer = function(regexps) {
      * Sets the internal buffer to data, and restores line/col/state info taken from save().
      * Compatibility not tested
      */
-    reset: function(data, info) { 
+    reset: function (data, info) {
       this.buffer = data || '';
       this.currentPos = 0;
       let line = info ? info.line : 1;
@@ -76,18 +113,18 @@ const nearleyLexer = function(regexps) {
     /**
      * Returns e.g. {type, value, line, col, …}. Only the value attribute is required.
      */
-    next: function() { // next(): Token | undefined;
+    next: function () { // next(): Token | undefined;
       if (this.currentPos < this.tokens.length)
         return this.tokens[this.currentPos++];
       else if (this.currentPos == this.tokens.length) {
-        let token = {}; 
-        Object.assign(token, this.tokens[this.currentPos-1]);
+        let token = {};
+        Object.assign(token, this.tokens[this.currentPos - 1]);
         token.type = "EOF"
         this.currentPos++; //So that next time will return undefined
-        return token; 
+        return token;
       }
     },
-    has: function(tokenType) {
+    has: function (tokenType) {
       return validTokens.has(tokenType);
     },
     /**
@@ -95,14 +132,14 @@ const nearleyLexer = function(regexps) {
      * to preserve this information between feed() calls, and also to support Parser#rewind().
      * The exact structure is lexer-specific; nearley doesn't care what's in it.
      */
-    save: function() {
+    save: function () {
       return this.tokens[this.currentPos];
     }, // line and col
     /**
      * Returns a string with an error message describing the line/col of the offending token.
      * You might like to include a preview of the line in question.
      */
-    formatError: function(token) {
+    formatError: function (token) {
       return `Error near "${token.value}" in line ${token.line}`;
     } // string with error message
   };

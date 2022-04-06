@@ -189,7 +189,7 @@ describe('buildLexer', () => {
       },
       {
         type: 'ERROR',
-        value:  "2x = \"hello\"",
+        value: "2x = \"hello\"",
         col: 5,
         line: 1,
         length: 12,
@@ -222,7 +222,7 @@ describe('buildLexer with unicode', () => {
   const RESERVEDWORD = /(?<RESERVEDWORD>\b(const|let)\b)/;
   const ID = /(?<ID>\b([a-z_]\w*)\b)/;
   const STRING = /(?<STRING>"([^\\"]|\\.")*")/;
-  const OP = /(?<OP>[+*💠\/=-])/;
+  const OP = /(?<OP>[+*♥\/=-])/;
 
   const myTokens = [
     SPACE,
@@ -235,7 +235,7 @@ describe('buildLexer with unicode', () => {
   const { lexer } = buildLexer(myTokens);
 
   test('Use of emoji operation', () => {
-    const str = 'const varName = "value" 💠 "a"';
+    const str = 'const varName = "value" ♥ "a"';
     const result = lexer(str);
     const expected = [
       {
@@ -268,15 +268,15 @@ describe('buildLexer with unicode', () => {
       },
       {
         type: 'OP',
-        value: '💠',
+        value: '♥',
         col: 25,
         line: 1,
-        length: 2,
+        length: 1,
       },
       {
         type: 'STRING',
         value: '"a"',
-        col: 28,
+        col: 27,
         line: 1,
         length: 3,
       },
@@ -285,3 +285,33 @@ describe('buildLexer with unicode', () => {
   });
 });
 
+describe('buildLexer with numbers', () => {
+
+  const SPACE = /(?<SPACE>\s+)/; SPACE.skip = true;
+  const COMMENT = /(?<COMMENT>\/\/.*)/; COMMENT.skip = true;
+  const RESERVEDWORD = /(?<RESERVEDWORD>\b(const|let)\b)/;
+  const NUMBER = /(?<NUMBER>\d+)/; NUMBER.value = v => Number(v);
+  const ID = /(?<ID>\b([a-z_]\w*)\b)/;
+  const STRING = /(?<STRING>"([^\\"]|\\.")*")/;
+  const PUNCTUATOR = /(?<PUNCTUATOR>[-+*\/=;])/;
+  const myTokens = [SPACE, COMMENT, NUMBER, RESERVEDWORD, ID, STRING, PUNCTUATOR];
+
+  const { lexer } = buildLexer(myTokens);
+
+  test('Numbers not as string', () => {
+    const str = 'const varName \n// An example of comment\n=\n 3;\nlet z = "value"';
+    const result = lexer(str);
+    const expected = [
+      { type: 'RESERVEDWORD', value: 'const', line: 1, col: 1, length: 5 },
+      { type: 'ID', value: 'varName', line: 1, col: 7, length: 7 },
+      { type: 'PUNCTUATOR', value: '=', line: 3, col: 1, length: 1 },
+      { type: 'NUMBER', value: 3, line: 4, col: 2, length: 1 },
+      { type: 'PUNCTUATOR', value: ';', line: 4, col: 3, length: 1 },
+      { type: 'RESERVEDWORD', value: 'let', line: 5, col: 1, length: 3 },
+      { type: 'ID', value: 'z', line: 5, col: 5, length: 1 },
+      { type: 'PUNCTUATOR', value: '=', line: 5, col: 7, length: 1 },
+      { type: 'STRING', value: '"value"', line: 5, col: 9, length: 7 }
+    ];
+    expect(result).toEqual(expected);
+  });
+});

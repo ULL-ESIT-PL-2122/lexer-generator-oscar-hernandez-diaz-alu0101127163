@@ -1,5 +1,5 @@
 {
-  "name": "@ull-esit-pl-2122/lexgen-code-casiano-rodriguez-leon",
+  "name": "@ull-esit-pl-2122/lexer-generator-oscar-hernandez-diaz-alu0101127163",
   "version": "3.1.1",
   "description": "A package that can generate basic lexical analyzers",
   "main": "src/main.js",
@@ -13,23 +13,23 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ULL-ESIT-PL-2122/lexgen-code-casiano-rodriguez-leon.git"
+    "url": "git+https://github.com/ULL-ESIT-PL-2122/lexer-generator-oscar-hernandez-diaz-alu0101127163.git"
   },
   "keywords": [
     "ULL",
     "PL",
     "Lexer"
   ],
-  "author": "Casiano Rodriguez Leon <aluXXX@ull.edu.es> (https://github.com/casiano-rodriguez-leon)",
+  "author": "Óscar Hernández Dáiz <alu0101127163@ull.edu.es>",
   "license": "Unlicense",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com",
     "access": "restricted"
   },
   "bugs": {
-    "url": "https://github.com/ULL-ESIT-PL-2122/lexgen-code-casiano-rodriguez-leon/issues"
+    "url": "https://github.com/ULL-ESIT-PL-2122/lexer-generator-oscar-hernandez-diaz-alu0101127163/issues"
   },
-  "homepage": "https://github.com/ULL-ESIT-PL-2122/lexgen-code-casiano-rodriguez-leon#readme",
+  "homepage": "https://github.com/ULL-ESIT-PL-2122/lexer-generator-oscar-hernandez-diaz-alu0101127163#readme",
   "devDependencies": {
     "@crguezl/eloquentjsegg": "^1.2.6",
     "@types/jest": "^26.0.22",
