@@ -1,6 +1,6 @@
 {
   "name": "@ull-esit-pl-2122/lexer-generator-oscar-hernandez-diaz-alu0101127163",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "description": "A package that can generate basic lexical analyzers",
   "main": "src/main.js",
   "scripts": {
