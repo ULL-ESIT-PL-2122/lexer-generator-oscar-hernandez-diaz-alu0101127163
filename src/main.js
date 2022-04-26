@@ -1,12 +1,3 @@
-// @ts-check
-/**
- * @author Casiano Rodríguez León <crguezl@ull.edu.es>
- * @since 28/03/2122 22/03/2022
- * @module lexgen-code
- * @file This module exports the functions buildLexer and nearleyLexer
- *     that allows to create lexical analyzers
- */
-
 'use strict';
 
 /**
@@ -35,63 +26,91 @@ const checkRegExpIsNamed = (regexp) => {
 const buildLexer = (regexps) => {
   let validTokens = new Map();
   regexps.push(/(?<ERROR>.+)/);
-  let arr = '';
+  let expression = '';
+
   regexps.forEach((regexp) => {
-    if (checkRegExpIsNamed(regexp) != false) {
-      validTokens.set(checkRegExpIsNamed(regexp), regexp);
-      arr += regexp.source + '|';
+    let name = checkRegExpIsNamed(regexp);
+    if (name === false) {
+     throw SyntaxError('Error, the regular expresion must be named.');
     }
-    else {
-      throw new Error("Not valid regex expression named");
-    }
+    validTokens.set(name, regexp)
+    expression += regexp.source + '|';
   });
-  arr = arr.slice(0, arr.length - 1);
-  // console.log(arr);
-  const regexp = new RegExp(arr, 'y');
-  // console.log(regexp);
-  let lexer = (string, line = 1) => {
+  const regexp = new RegExp( expression.slice(0, expression.length - 1), 'y', 'u' ); // Deleting last |
+
+  /**
+   * Lexer analyzer for EGG
+   *
+   * @param      {string}  string    The string
+   * @param      {number}  [line=1]  The line
+   * @return     {Array}   Nodes obtained
+   */
+  let lexer = (string, line=1) => {
     const result = [];
-
     let match;
-    while (match = regexp.exec(string)) {
+    while (match = regexp.exec(string)) {        
       for (let i in match.groups) {
-        if (match.groups[i] != undefined)
-          if (!validTokens.get(i).hasOwnProperty('skip')) {
-            let line = 1;
-            let col = 1;
-            for (let j = 0; j < regexp.lastIndex; j++) {
-              if (string[j] === '\n') {
-                line++;
-                col = 1;
-              }
-              else col++;
+        if (typeof match.groups[i] !== 'undefined') {
+          if (!validTokens.get(i).hasOwnProperty('skip') || (validTokens.get(i).hasOwnProperty('skip') && validTokens.get(i).skip === false)) {
+            let val = match.groups[i]
+            if (validTokens.get(i).hasOwnProperty('value')) {
+              val = validTokens.get(i).value(val);
             }
-            let token;
-            if (!validTokens.get(i).hasOwnProperty('value')) {
-              token = { type: i, value: match.groups[i], line: line, col: col - match.groups[i].length, length: match.groups[i].length }
+            let len = match.groups[i].length;
+            let pos = searchPosition(regexp.lastIndex - len, string)
+            // Unicode
+            if (String(string[regexp.lastIndex]).charCodeAt(0) > 255) {
+              // Codes from char and readed char (They are the same!!)
+              // console.log("\n\nCODE CHAR", '�'.charCodeAt(0), "---\n\n");
+              // console.log("\n\nCODE READED", match.groups[i].charCodeAt(0), "---\n\n");
+              let newToken = {type: i, value: String.fromCodePoint(match.groups[i].codePointAt(0)) , line: pos.line, col: pos.col, length: len + 1}
+              result.push(newToken)
             }
-            else 
-            {
-              token = { type: i, value: validTokens.get(i).value(match.groups[i]), line: line, col: col - match.groups[i].length, length: match.groups[i].length }
-
-            }
-            //console.log(match.groups[i]);
-            result.push(token);
+            // Normal case
+            else {
+              let newToken = {type: i, value: val, line: pos.line, col: pos.col, length: len}
+              result.push(newToken)
+            }              
           }
+        }
       }
     }
-
     return result;
   };
 
-  //console.log(validTokens);
-  return { validTokens, lexer };
+  return {validTokens, lexer};
 };
 
+/**
+ * Searchs the position of a word in a string (number of line and column)
+ *
+ * @param      {number}  firstIndex  The first index
+ * @param      {string}  str         The string
+ * @return     {Object}  Object with the col and the line of the string
+ */
+function searchPosition(firstIndex, str) {
+  let col = 1;
+  let line = 1;
+  let unicode = false;
+  for (let i = 0; i < firstIndex; i++) {
+    if (str[i] === '\n') {
+      line++;
+      col = 0;
+    }
+    col++;
+  }
+  return {col, line}
+}
 
-const nearleyLexer = function (regexps) {
+/**
+ * Lexer using nearley
+ *
+ * @param      {RegExp}  regexps  The regexps
+ * @return     {Object}  Tokens generated
+ */
+const nearleyLexer = function(regexps) {
   debugger;
-  const { validTokens, lexer } = buildLexer(regexps);
+  const {validTokens, lexer} = buildLexer(regexps);
   validTokens.set("EOF");
   return {
     currentPos: 0,
@@ -103,7 +122,7 @@ const nearleyLexer = function (regexps) {
      * Sets the internal buffer to data, and restores line/col/state info taken from save().
      * Compatibility not tested
      */
-    reset: function (data, info) {
+    reset: function(data, info) { 
       this.buffer = data || '';
       this.currentPos = 0;
       let line = info ? info.line : 1;
@@ -113,18 +132,17 @@ const nearleyLexer = function (regexps) {
     /**
      * Returns e.g. {type, value, line, col, …}. Only the value attribute is required.
      */
-    next: function () { // next(): Token | undefined;
+    next: function() { // next(): Token | undefined;
       if (this.currentPos < this.tokens.length)
         return this.tokens[this.currentPos++];
       else if (this.currentPos == this.tokens.length) {
-        let token = {};
-        Object.assign(token, this.tokens[this.currentPos - 1]);
+        let token = this.tokens[this.currentPos-1];
         token.type = "EOF"
         this.currentPos++; //So that next time will return undefined
-        return token;
+        return token; 
       }
     },
-    has: function (tokenType) {
+    has: function(tokenType) {
       return validTokens.has(tokenType);
     },
     /**
@@ -132,17 +150,18 @@ const nearleyLexer = function (regexps) {
      * to preserve this information between feed() calls, and also to support Parser#rewind().
      * The exact structure is lexer-specific; nearley doesn't care what's in it.
      */
-    save: function () {
+    save: function() {
       return this.tokens[this.currentPos];
     }, // line and col
     /**
      * Returns a string with an error message describing the line/col of the offending token.
      * You might like to include a preview of the line in question.
      */
-    formatError: function (token) {
+    formatError: function(token) {
       return `Error near "${token.value}" in line ${token.line}`;
     } // string with error message
   };
 }
+
 
 module.exports = { buildLexer, nearleyLexer };
