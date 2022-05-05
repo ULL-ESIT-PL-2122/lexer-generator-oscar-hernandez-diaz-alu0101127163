@@ -108,8 +108,8 @@ function searchPosition(firstIndex, str) {
  * @param      {RegExp}  regexps  The regexps
  * @return     {Object}  Tokens generated
  */
-const nearleyLexer = function(regexps) {
-  debugger;
+ const nearleyLexer = function(regexps, options) {
+  //debugger;
   const {validTokens, lexer} = buildLexer(regexps);
   validTokens.set("EOF");
   return {
@@ -122,11 +122,20 @@ const nearleyLexer = function(regexps) {
      * Sets the internal buffer to data, and restores line/col/state info taken from save().
      * Compatibility not tested
      */
-     reset: function(data, info) { 
+    reset: function(data, info) { 
       this.buffer = data || '';
       this.currentPos = 0;
       let line = info ? info.line : 1;
       this.tokens = lexer(data, line);
+      
+      let lastToken = {}; 
+        // Replicate the last token if it exists
+      Object.assign(lastToken, this.tokens[this.tokens.length-1]);
+      lastToken.type = "EOF"
+      lastToken.value = "EOF"
+
+      this.tokens.push(lastToken);
+
       if (options && options.transform) {
         if (typeof options.transform === 'function') {
           debugger;
@@ -143,12 +152,7 @@ const nearleyLexer = function(regexps) {
     next: function() { // next(): Token | undefined;
       if (this.currentPos < this.tokens.length)
         return this.tokens[this.currentPos++];
-      else if (this.currentPos == this.tokens.length) {
-        let token = this.tokens[this.currentPos-1];
-        token.type = "EOF"
-        this.currentPos++; //So that next time will return undefined
-        return token; 
-      }
+      return undefined;
     },
     has: function(tokenType) {
       return validTokens.has(tokenType);
@@ -170,6 +174,7 @@ const nearleyLexer = function(regexps) {
     } // string with error message
   };
 }
+
 
 
 module.exports = { buildLexer, nearleyLexer };
