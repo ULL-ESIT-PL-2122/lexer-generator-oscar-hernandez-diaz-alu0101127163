@@ -122,11 +122,19 @@ const nearleyLexer = function(regexps) {
      * Sets the internal buffer to data, and restores line/col/state info taken from save().
      * Compatibility not tested
      */
-    reset: function(data, info) { 
+     reset: function(data, info) { 
       this.buffer = data || '';
       this.currentPos = 0;
       let line = info ? info.line : 1;
       this.tokens = lexer(data, line);
+      if (options && options.transform) {
+        if (typeof options.transform === 'function') {
+          debugger;
+          this.tokens = options.transform(this.tokens);
+        } else if (Array.isArray(options.transform)) {
+          options.transform.forEach(trans => this.tokens = trans(this.tokens))
+        }
+      } 
       return this;
     },
     /**
